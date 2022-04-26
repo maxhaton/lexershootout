@@ -16,16 +16,19 @@ size_t sdcCount(string sourceCode)
 {
     //adapted from sdc lexer testsuite
     import source.dlexer, source.context, source.name, source.location;
-    auto context = new Context();
+    scope context = new Context;
     auto base = context.registerMixin(Location.init, sourceCode ~ '\0');
     auto l = lex(base, context);
 	return imported!"std.algorithm.searching".count(l);
 }
-
+__gshared int cnt = 0;
 size_t dmdFrontendCount(string sourceCode)
 {
     import dmd.lexer;
-    auto x = new Lexer("test.d", sourceCode.ptr, 0, sourceCode.length, 0, 0);
+    import std.conv, std.string;
+    ++cnt;
+    //This seems to be needed otherwise dmd string interning goes completely mad
+    auto x = new Lexer(cnt.to!string.toStringz, sourceCode.ptr, 0, sourceCode.length, 0, 0);
     return imported!"std.algorithm.searching".count(x);
 }
 bool acceptHeuristic(size_t[] cnt)
@@ -37,9 +40,32 @@ bool acceptHeuristic(size_t[] cnt)
     const lastPropDiff = abs(cnt[0] - firstTwoMean) / firstTwoMean;
     return lastPropDiff < 0.30;
 }
+
 void main(string[] args)
 {
     import std.file, std.path, std.stdio;
+    if (true) {
+        imported!"dmd.globals".global.startGagging();
+        string contents = readText(args[1]);
+        import std.meta : AliasSeq;
+        alias list = AliasSeq!(dparseCount, sdcCount, dmdFrontendCount);
+        foreach (t; list)
+        {
+            import std.datetime.stopwatch;
+            //This is required because one of the lexers is a bit naughty.
+            //string copy = contents.idup;
+            auto sw = StopWatch(AutoStart.no);
+            sw.start();
+            foreach(_; 0..100)
+            {
+                immutable copy = contents.idup;
+                t(copy);
+            }
+            sw.stop();
+            writeln(__traits(identifier, t), " -> ", sw.peek);
+        }
+        return;
+    }
     auto f = dirEntries(buildPath(args[1]), SpanMode.shallow);
     uint cnt;
     uint disagreed;
@@ -54,15 +80,15 @@ void main(string[] args)
             string fileContents = readText(el);
             if (!fileContents)
                 continue;
-            const dpRes = 0;//dparseCount(fileContents.idup);
+            const dpRes = dparseCount(fileContents.idup);
             const sdcRes = sdcCount(fileContents.idup);
-            const dmdRes = 0;//dmdFrontendCount(fileContents.idup);
+            const dmdRes = dmdFrontendCount(fileContents.idup);
             ++cnt;
 
             if(acceptHeuristic([dpRes, sdcRes, dmdRes])) {
                 
             } else {
-                //writefln("%s -> {libdparse: %u, sdc: %u, dmd: %u}", el, dpRes, sdcRes, dmdRes);
+                writefln("%s -> {libdparse: %u, sdc: %u, dmd: %u}", el, dpRes, sdcRes, dmdRes);
                 ++disagreed;
             }
         } catch(Throwable e)

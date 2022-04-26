@@ -9,6 +9,6 @@ rule dc-san
 build bench: dc topbench.d libdparse/src/std/experimental/lexer.d
 
 build bench-opt: dc topbench.d libdparse/src/std/experimental/lexer.d
-    dflags = -g -O3
+    dflags = -g -O3 -flto=full
 build bench-san: dc-san topbench.d libdparse/src/std/experimental/lexer.d
 
