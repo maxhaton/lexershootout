@@ -1,0 +1,12 @@
+[submodule "libdparse"]
+	path = libdparse
+	url = https://github.com/dlang-community/libdparse
+[submodule "dmd-testsuite"]
+	path = dmd-testsuite
+	url = https://github.com/ldc-developers/dmd-testsuite
+[submodule "sdc"]
+	path = sdc
+	url = https://github.com/snazzy-d/sdc
+[submodule "dmd"]
+	path = dmd
+	url = https://github.com/dlang/dmd

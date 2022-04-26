@@ -1,0 +1,14 @@
+ddirs = -I libdparse/src -Isdc/src -Idmd/src/ -Jdmd --d-version=DMDLIB
+dflags = -g
+rule dc
+  command = ldc2 $ddirs -i $in -of=$out $dflags
+
+rule dc-san
+  command = ldc2 $ddirs -i $in -of=$out -fsanitize=address -g
+
+build bench: dc topbench.d libdparse/src/std/experimental/lexer.d
+
+build bench-opt: dc topbench.d libdparse/src/std/experimental/lexer.d
+    dflags = -g -O3
+build bench-san: dc-san topbench.d libdparse/src/std/experimental/lexer.d
+
